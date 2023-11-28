@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const openai = require('openai');
+require('dotenv').config();
 
 const app = express();
 const PORT = 3001;
@@ -9,7 +10,7 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-const openaiApiKey = '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';
+const openaiApiKey = process.env.OPENAI_API_KEY;
 const openaiClient = new openai.OpenAI({ apiKey: openaiApiKey });
 
 app.post('/api/chat', async (req, res) => {
