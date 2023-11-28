@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const openai = require('openai');
 
 const app = express();
 const PORT = 3001;
@@ -8,22 +9,32 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-app.post('/api/chat', (req, res) => {
+const openaiApiKey = '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';
+const openaiClient = new openai.OpenAI({ apiKey: openaiApiKey });
+
+app.post('/api/chat', async (req, res) => {
   const userQuery = req.body.query;
-  const botResponse = generateRandomResponse();
-  res.json({ botResponse });
+
+  try {
+    const botResponse = await generateOpenAIResponse(userQuery);
+    res.json({ botResponse });
+  } catch (error) {
+    console.error('Error generating OpenAI response:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
-function generateRandomResponse() {
-  const responses = [
-    'Hello! How can I help you?',
-    'I am just a random response generator.',
-    'Ask me anything!',
-  ];
-  const randomIndex = Math.floor(Math.random() * responses.length);
-  return responses[randomIndex];
+async function generateOpenAIResponse(userQuery) {
+  const prompt = `User: ${userQuery}\nChatGPT:`;
+  const response = await openaiClient.chat.completions.create({
+    messages: [{"role": "user", "content": prompt}],
+    model: "gpt-3.5-turbo",
+  });
+
+  return response.choices[0].message.content;
 }
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function App() {
   const [userQuery, setUserQuery] = useState('');
-  const [botResponse, setBotResponse] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
 
   const handleInputChange = (e) => {
     setUserQuery(e.target.value);
@@ -12,7 +12,17 @@ function App() {
   const handleSendQuery = async () => {
     try {
       const response = await axios.post('http://localhost:3001/api/chat', { query: userQuery });
-      setBotResponse(response.data.botResponse);
+      const botResponse = response.data.botResponse;
+
+      // Update chat history with the new message
+      setChatHistory((prevHistory) => [
+        ...prevHistory,
+        { role: 'user', content: userQuery },
+        { role: 'bot', content: botResponse },
+      ]);
+
+      // Clear the input field after sending the query
+      setUserQuery('');
     } catch (error) {
       console.error('Error sending query:', error);
     }
@@ -22,14 +32,17 @@ function App() {
     <div>
       <h1>Chatbot App</h1>
       <div>
-        <input type="text" value={userQuery} onChange={handleInputChange} />
-        <button onClick={handleSendQuery}>Send</button>
-      </div>
-      <div>
-        <strong>User:</strong> {userQuery}
-      </div>
-      <div>
-        <strong>Bot:</strong> {botResponse}
+        <div>
+          {chatHistory.map((message, index) => (
+            <div key={index}>
+              <strong>{message.role.charAt(0).toUpperCase() + message.role.slice(1)}:</strong> {message.content}
+            </div>
+          ))}
+        </div>
+        <div>
+          <input type="text" value={userQuery} onChange={handleInputChange} />
+          <button onClick={handleSendQuery}>Send</button>
+        </div>
       </div>
     </div>
   );
