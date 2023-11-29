@@ -75,11 +75,12 @@ async function generateEmbeddings(text) {
 }
 
 async function answerQueryWithEmbeddings(userQuery, knowledgeBaseEmbeddings, pdfTexts) {
-  const prompt = `Context: ${pdfTexts.join('\n')} - Question: ${userQuery}`;
+  const prompt = `Context - ${pdfTexts.join('\n')} - Now reply to the following question/statement - ${userQuery}`;
   console.log(prompt);
   const response = await openaiClient.completions.create({
     model: 'text-davinci-003',
     prompt: prompt,
+    temperature: 0.25,
     max_tokens: 200,
   });
   console.log(knowledgeBaseEmbeddings);
@@ -90,8 +91,10 @@ async function generateResponseWithOpenAI(userQuery) {
   const response = await openaiClient.completions.create({
     model: 'text-davinci-003',
     prompt: userQuery,
+    temperature: 0.25,
     max_tokens: 200,
   });
+  console.log(userQuery);
   return response.choices[0].text.trim();
 }
 

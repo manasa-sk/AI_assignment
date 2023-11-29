@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import './App.css';
 
 function App() {
   const [userQuery, setUserQuery] = useState('');
   const [botResponse, setBotResponse] = useState('');
   const [files, setFiles] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
+  const [showFileInput, setShowFileInput] = useState(false);
 
   const handleInputChange = (e) => {
     setUserQuery(e.target.value);
   };
 
   const handleFileChange = (e) => {
-    const uploadedFiles = e.target.files;
+    const uploadedFiles = Array.from(e.target.files);
     setFiles(uploadedFiles);
   };
 
   const handleSendQuery = async () => {
+    if(userQuery==''){
+      return;
+    }
     try {
       if (files.length > 0) {
+        console.log('Files exist');
         // If PDF files are uploaded, learn from them and then respond to user queries
         await learnFromPDFs(files);
 
@@ -28,12 +34,13 @@ function App() {
 
       // Send user query to the server
       const response = await axios.post('http://localhost:3001/api/chat', { query: userQuery });
+      console.log('Query: ' + userQuery);
 
       // Update chat history with the user query and bot response
       setChatHistory((prevHistory) => [
         ...prevHistory,
-        { role: 'user', content: userQuery },
-        { role: 'bot', content: response.data.botResponse },
+        { role: 'You', content: userQuery },
+        { role: 'Bot', content: response.data.botResponse },
       ]);
 
       // Update bot response in the state
@@ -43,6 +50,11 @@ function App() {
     } catch (error) {
       console.error('Error sending query:', error);
     }
+  };
+
+  const handleUploadFiles = () => {
+    // Toggle the visibility of the file input
+    setShowFileInput(!showFileInput);
   };
 
   const learnFromPDFs = async (pdfFiles) => {
@@ -67,21 +79,44 @@ function App() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    // Check if the "Enter" key is pressed (key code 13)
+    if (e.key === 'Enter') {
+      handleSendQuery();
+    }
+  };
+
   return (
-    <div>
+    <div className="app-container">
       <div>
-        <input type="file" onChange={handleFileChange} multiple />
+        <h2>ChatBot</h2>
+        <div className="uploaded-files">
+        {files.length > 0 && (
+          <div>
+            <strong>Uploaded Files:</strong>
+            <ul>
+              {files.map((file, index) => (
+                <li key={index}>{file.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
-      <div>
-        <input type="text" value={userQuery} onChange={handleInputChange} />
-        <button onClick={handleSendQuery}>Send</button>
       </div>
-      <div>
+      <div className="chat-history">
         {chatHistory.map((message, index) => (
           <div key={index}>
             <strong>{message.role}:</strong> {message.content}
           </div>
         ))}
+      </div>
+      <div className="user-input-section">
+        <input id='query' type="text" value={userQuery} onChange={handleInputChange} onKeyDown={handleKeyDown} placeholder="Type your message..." />
+        <button id='send' onClick={handleSendQuery}>Send</button>
+        <div className="file-upload-section">
+          {showFileInput && <input type="file" onChange={handleFileChange} multiple />}
+          <button onClick={handleUploadFiles}>{showFileInput ? 'Close':'Upload'}</button>
+        </div>
       </div>
     </div>
   );
