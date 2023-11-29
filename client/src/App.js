@@ -4,7 +4,7 @@ import axios from 'axios';
 function App() {
   const [userQuery, setUserQuery] = useState('');
   const [botResponse, setBotResponse] = useState('');
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
 
   const handleInputChange = (e) => {
@@ -12,18 +12,18 @@ function App() {
   };
 
   const handleFileChange = (e) => {
-    const uploadedFile = e.target.files[0];
-    setFile(uploadedFile);
+    const uploadedFiles = e.target.files;
+    setFiles(uploadedFiles);
   };
 
   const handleSendQuery = async () => {
     try {
-      if (file) {
-        // If a PDF file is uploaded, learn from it and then respond to user queries
-        await learnFromPDF(file);
+      if (files.length > 0) {
+        // If PDF files are uploaded, learn from them and then respond to user queries
+        await learnFromPDFs(files);
 
-        // Reset the file state to null after learning
-        setFile(null);
+        // Reset the files state to an empty array after learning
+        setFiles([]);
       }
 
       // Send user query to the server
@@ -45,27 +45,32 @@ function App() {
     }
   };
 
-  const learnFromPDF = async (pdfFile) => {
+  const learnFromPDFs = async (pdfFiles) => {
     try {
       const formData = new FormData();
-      formData.append('pdf', pdfFile);
 
-      // Send the PDF file to the server for learning
+      // Append each PDF file to the form data
+      for (const file of pdfFiles) {
+        formData.append('pdfs', file);
+      }
+
+      // Send the PDF files to the server for learning
       await axios.post('http://localhost:3001/api/learn', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log('Pdf sent : ', pdfFile);
+
+      console.log('PDFs sent:', pdfFiles);
     } catch (error) {
-      console.error('Error learning from PDF:', error);
+      console.error('Error learning from PDFs:', error);
     }
   };
 
   return (
     <div>
       <div>
-        <input type="file" onChange={handleFileChange} />
+        <input type="file" onChange={handleFileChange} multiple />
       </div>
       <div>
         <input type="text" value={userQuery} onChange={handleInputChange} />

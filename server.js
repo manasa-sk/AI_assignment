@@ -18,8 +18,8 @@ const openaiClient = new openai.OpenAI({ apiKey: openaiApiKey });
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-let knowledgeBaseEmbeddings = null;
-let pdfText = null;
+let knowledgeBaseEmbeddings = [];
+let pdfTexts = [];
 let isFileUploaded = false;
 
 app.post('/api/chat', async (req, res) => {
@@ -29,7 +29,7 @@ app.post('/api/chat', async (req, res) => {
     let botResponse = '';
 
     if (isFileUploaded) {
-      botResponse = await answerQueryWithEmbeddings(userQuery, knowledgeBaseEmbeddings, pdfText);
+      botResponse = await answerQueryWithEmbeddings(userQuery, knowledgeBaseEmbeddings, pdfTexts);
     } else {
       botResponse = await generateResponseWithOpenAI(userQuery);
     }
@@ -41,14 +41,15 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-app.post('/api/learn', upload.single('pdf'), async (req, res) => {
+app.post('/api/learn', upload.array('pdfs', 3), async (req, res) => {
   console.log('Hit learn');
   try {
-    console.log(req.body);
-    if (req.file) {
-      const pdfBuffer = req.file.buffer;
-      pdfText = await extractTextFromPDF(pdfBuffer);
-      knowledgeBaseEmbeddings = await generateEmbeddings(pdfText);
+    console.log(req.files);
+
+    if (req.files && req.files.length > 0) {
+      const pdfBuffers = req.files.slice(0, 3).map(file => file.buffer);
+      pdfTexts = await Promise.all(pdfBuffers.map(extractTextFromPDF));
+      knowledgeBaseEmbeddings = await Promise.all(pdfTexts.map(generateEmbeddings));
       isFileUploaded = true;
       console.log(isFileUploaded);
     }
@@ -73,8 +74,8 @@ async function generateEmbeddings(text) {
   return embedding.data[0].embedding;
 }
 
-async function answerQueryWithEmbeddings(userQuery, knowledgeBaseEmbeddings, pdfText) {
-  const prompt = `Context: ${pdfText} - Question: ${userQuery}`;
+async function answerQueryWithEmbeddings(userQuery, knowledgeBaseEmbeddings, pdfTexts) {
+  const prompt = `Context: ${pdfTexts.join('\n')} - Question: ${userQuery}`;
   console.log(prompt);
   const response = await openaiClient.completions.create({
     model: 'text-davinci-003',
